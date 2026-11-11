@@ -445,6 +445,10 @@
       .about-text { white-space: pre-line; font-size: 14.5px; line-height: 1.9; margin: 0; }
 
       /* ---------- Chat ---------- */
+      .chat-note {
+        margin: 16px 20px 12px; text-align: center;
+        font-size: 13px; line-height: 1.8; color: hsl(var(--muted-foreground));
+      }
       .chat-card { margin: 0 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
       .chat-row { display: flex; gap: 9px; align-items: flex-start; }
       .chat-row.user { justify-content: flex-end; }
@@ -681,22 +685,9 @@
 
         <!-- ============ MY CHAT ============ -->
         <section class="view" id="view-chat">
-          <div class="prompt-bubble">هذه شاشتك للمحادثة: معاينة حيّة تكتبين فيها فيُرسل كلامك إلى البوت ويردّ عليك هنا، وزر في الأسفل يغلق التطبيق ويعيدك مباشرة إلى محادثتك مع البوت في تيليجرام.</div>
-          <h2 class="section-title">هكذا أتحدّث معك</h2>
-          <div class="chat-card" aria-label="محادثة تجريبية مع البوت">
-            <div id="chatLog" style="display:flex; flex-direction:column; gap:12px">
-            <div class="chat-row">
-              <span class="spark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>
-              <span class="chat-bubble">أهلاً مادو 🥹💗 أنا Muse. اسأليني عن أي شيء، أو أرسلي لي درساً أشرحه لك خطوة بخطوة.</span>
-            </div>
-            <div class="chat-row user">
-              <span class="chat-bubble">اشرحي لي درس اليوم</span>
-            </div>
-            <div class="chat-row">
-              <span class="spark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>
-              <span class="chat-bubble">بكل سرور — أرسليه لي هنا، وسأشرحه بمثال لكل فكرة، ثم أختبرك بأسئلة قصيرة إن أردتِ.</span>
-            </div>
-            </div>
+          <p class="chat-note">المحادثة محفوظة عند Muse نفسه: كل ما ترسلينه — من هنا أو من تيليجرام — يصل إليه ويُحفظ في سجلّه. التطبيق وتيليجرام نافذتان إليه فحسب، وردوده تصلك في تيليجرام.</p>
+          <div class="chat-card" aria-label="محادثتي مع البوت">
+            <div id="chatLog" style="display:flex; flex-direction:column; gap:12px"></div>
             <form class="chat-form" id="chatForm">
               <input type="text" id="chatInput" placeholder="اكتبي رسالتك هنا…" aria-label="اكتبي رسالتك" autocomplete="off" />
               <button class="send-btn" type="submit" aria-label="إرسال">
@@ -704,25 +695,7 @@
               </button>
             </form>
           </div>
-          <p class="hint">معاينة حيّة: اكتبي أي رسالة فتُرسل إلى البوت من هنا ويردّ عليك فوراً. وللمحادثة الكاملة بتاريخها، افتحي محادثة البوت بالزر في أسفل هذه الشاشة.</p>
-
-          <button class="save-btn" type="button" id="openBotChatBtn">فتح محادثتي مع البوت</button>
-          <p class="hint">يُغلق هذا الزر التطبيق المصغّر ويعيدك مباشرة إلى محادثة البوت في تيليجرام، حيث تجدين تاريخ محادثتنا كاملاً.</p>
-
-          <h2 class="section-title">جرّبي أن تقولي لي</h2>
-          <div class="starter-wrap">
-            <div class="chips" style="margin-top:0">
-              <button class="chip" type="button" data-starter="اشرحي لي درساً صعباً خطوة بخطوة">اشرحي لي درساً صعباً</button>
-              <button class="chip" type="button" data-starter="لخّصي لي هذا النص في نقاط واضحة">لخّصي لي نصاً</button>
-              <button class="chip" type="button" data-starter="ابحثي لي في الويب عن: ">ابحثي لي في الويب</button>
-              <button class="chip" type="button" data-starter="ارسمي لي صورة: ">ارسمي لي صورة</button>
-              <button class="chip" type="button" data-starter="ترجمي لي هذه الفقرة إلى الإنجليزية: ">ترجمي لي فقرة</button>
-              <button class="chip" type="button" data-starter="اكتبي لي رسالة رسمية قصيرة عن: ">اكتبي لي رسالة</button>
-              <button class="chip" type="button" data-starter="ضعي لي خطة مذاكرة لأسبوع كامل">ضعي لي خطة مذاكرة</button>
-            </div>
-            <p class="hint" style="margin-inline:4px">اضغطي أي عبارة فتُرسل فوراً في المعاينة الحيّة في الأعلى.</p>
-          </div>
-
+          <button class="ghost-btn" type="button" id="openBotChatBtn">فتح محادثة البوت في تيليجرام</button>
         </section>
 
         <!-- ============ MY ORDERS ============ -->
@@ -1262,9 +1235,16 @@
           sendOrCopy("/from_haedara", "تمّ نسخ الأمر");
         });
 
-        /* ---------- Live demo chat ---------- */
+        /* ---------- Conversation — the record lives with Muse, not between app and Telegram ----------
+           There is no app<->Telegram sync and no storage in the app: every message
+           written here is only forwarded to Muse via the bot (sendData), and Muse
+           keeps the conversation in its own log — the same log that already records
+           everything she sends from Telegram and every reply. The app and the
+           Telegram chat are just two windows onto Muse; what she writes here is
+           shown for this session only and is not persisted by the app itself. */
         var HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
         var SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+        var chatHistory = [];
         function addChatMsg(text, who) {
           var row = document.createElement("div");
           row.className = "chat-row" + (who === "user" ? " user" : "");
@@ -1281,27 +1261,20 @@
           $("chatLog").appendChild(row);
           return row;
         }
-        function botReplyFor(text) {
-          if (/دراس|درس|اشرح|لخّص|لخص|اختبار|مذاكرة/.test(text)) return "تمام — أرسلي الدرس أو صوّريه، وسأشرحه خطوة بخطوة بمثال لكل فكرة، ثم أختبرك بأسئلة قصيرة إن أردتِ. ولمساعدة منظمة أرسلي /study من خانة «أوامري».";
-          if (/ابحث|بحث|ويب/.test(text)) return "أستطيع البحث لك في الويب — حدّدي موضوع البحث وسأجيبك بالمصادر. أو أرسلي /search متبوعاً بموضوع البحث من خانة «أوامري».";
-          if (/ارسم|رسم|صورة/.test(text)) return "بكل سرور — صفي لي ما تتخيّلينه وسأرسمه لك، أو أرسلي /draw متبوعاً بوصفك من خانة «أوامري».";
-          if (/ذكّر|تذكير/.test(text)) return "حاضر — قولي لي ماذا أذكّرك ومتى، أو أضيفيه من قسم «تذكيراتي» وسأرسله لك في وقته تماماً.";
-          if (/حيدرة|رسالة من/.test(text)) return "رسائل حيدرة محفوظة في مكتبة خاصة — أرسلي /from_haedara من خانة «أوامري» لتصلك واحدة فوراً، وبلا تكرار.";
-          if (/ترجم/.test(text)) return "أرسلي الفقرة وسأترجمها لك بين العربية والإنجليزية فوراً.";
-          if (/مرحبا|سلام|أهلا|اهلا|صباح|مساء/.test(text)) return "أهلاً مادو 🥹💗 كيف أستطيع مساعدتك اليوم؟";
-          if (/شكرا/.test(text)) return "العفو 🥹💗 أنا هنا متى احتجتِني.";
-          return "وصلتني رسالتك 🥹💗 هذه معاينة حيّة داخل التطبيق — للمحادثة الكاملة بكل قدراتي افتحي محادثتي مع البوت بالزر في هذه الشاشة، أو جرّبي أوامرك من خانة «أوامري».";
+        function renderChat() {
+          $("chatLog").innerHTML = "";
+          if (!chatHistory.length) {
+            addChatMsg("أهلاً مادو 🥹💗 أنا Muse. اسأليني عن أي شيء، أو أرسلي لي درساً أشرحه لك خطوة بخطوة.", "bot");
+            return;
+          }
+          chatHistory.forEach(function (m) { addChatMsg(m.text, m.who); });
         }
         function handleUserText(text) {
-          addChatMsg(text, "user");
+          chatHistory.push({ who: "user", text: text });
+          var row = addChatMsg(text, "user");
           dispatch({ type: "message", text: text });
-          var typing = addChatMsg("", "bot");
-          typing.querySelector(".chat-bubble").innerHTML = '<span class="typing-dots"><i></i><i></i><i></i></span>';
-          typing.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          setTimeout(function () {
-            typing.querySelector(".chat-bubble").textContent = botReplyFor(text);
-            typing.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          }, 650);
+          if (row && row.scrollIntoView) row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          toast("أُرسلت إلى Muse — محفوظة في سجلّه عنده");
         }
         $("chatForm").addEventListener("submit", function (e) {
           e.preventDefault();
@@ -1309,12 +1282,6 @@
           if (!v) return;
           $("chatInput").value = "";
           handleUserText(v);
-        });
-        document.querySelectorAll("[data-starter]").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            handleUserText(btn.getAttribute("data-starter"));
-            document.querySelector(".chat-card").scrollIntoView({ behavior: "smooth", block: "center" });
-          });
         });
 
         /* ---------- Agreed quick commands (main view) ---------- */
@@ -1527,6 +1494,7 @@
         renderCommands();
         renderReminders();
         renderMemory();
+        renderChat();
       })();
     </script>
   </body>
