@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="color-scheme" content="dark" />
     <link rel="icon" href="data:," />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -63,6 +63,7 @@
         background: #000;
         color: hsl(var(--foreground));
         -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent;
         text-rendering: optimizeLegibility;
         overflow-x: hidden;
       }
@@ -79,7 +80,9 @@
       .app {
         max-width: 540px;
         margin: 0 auto;
+        min-height: 100vh;
         min-height: 100dvh;
+        min-height: var(--tg-viewport-stable-height, 100dvh);
         background: hsl(var(--background));
         border-inline: 1px solid hsl(var(--border));
         display: flex;
@@ -91,7 +94,8 @@
       .appbar {
         position: sticky; top: 0; z-index: 40;
         display: flex; align-items: center; gap: 10px;
-        padding: 10px 16px; min-height: 57px;
+        padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+        min-height: calc(57px + env(safe-area-inset-top));
         background: hsl(var(--background) / 0.92);
         backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid hsl(var(--border));
@@ -213,7 +217,7 @@
       }
       .status-card .row + .row { border-top: 1px solid hsl(var(--border)); }
       .status-card .k { font-weight: 500; color: hsl(var(--muted-foreground)); flex: none; font-size: 13.5px; }
-      .status-card .v { color: hsl(var(--foreground)); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; margin-inline-start: auto; text-align: end; }
+      .status-card .v { color: hsl(var(--foreground)); display: inline-flex; align-items: center; gap: 6px; font-weight: 500; margin-inline-start: auto; text-align: end; min-width: 0; overflow-wrap: anywhere; }
       .status-card .v svg { width: 16px; height: 16px; color: var(--green); flex: none; }
       .status-card .v.off { color: hsl(var(--muted-foreground)); font-weight: 400; }
 
@@ -549,6 +553,49 @@
       .tab-btn:hover { color: hsl(var(--foreground)); }
       .tab-btn.active { color: hsl(var(--primary)); font-weight: 600; background: hsl(var(--primary) / 0.1); }
 
+      /* ---------- Side drawer (conversations + secondary sections) ---------- */
+      .menu-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent; border: 0; border-radius: calc(var(--radius) - 2px);
+        color: hsl(var(--foreground)); width: 36px; height: 36px; flex: none; padding: 0;
+        transition: background 0.15s ease;
+      }
+      .menu-btn:hover { background: hsl(var(--accent-token)); }
+      .menu-btn svg { width: 20px; height: 20px; }
+      .drawer-scrim {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+        opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 60;
+      }
+      .drawer-scrim.show { opacity: 1; pointer-events: auto; }
+      .drawer {
+        position: fixed; top: 0; bottom: 0; inset-inline-start: 0;
+        width: min(86vw, 340px);
+        background: hsl(var(--popover)); color: hsl(var(--popover-foreground));
+        border-inline-end: 1px solid hsl(var(--border));
+        z-index: 61; transform: translateX(105%);
+        transition: transform 0.22s ease;
+        display: flex; flex-direction: column;
+        box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      }
+      .drawer.open { transform: none; }
+      .drawer-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+        min-height: calc(57px + env(safe-area-inset-top)); flex: none;
+        border-bottom: 1px solid hsl(var(--border));
+      }
+      .drawer-title { font-size: 16px; font-weight: 600; flex: 1; }
+      .drawer-body {
+        overflow-y: auto; padding: 16px; flex: 1;
+        display: flex; flex-direction: column; gap: 12px;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      }
+      .drawer .form-card { margin: 0; }
+      .drawer .save-btn { width: 100%; margin: 0; }
+      .drawer .item-list, .drawer .empty-state, .drawer .list-card { margin: 0; }
+      .drawer-sub { font-size: 14px; font-weight: 600; margin: 8px 0 0; color: hsl(var(--foreground)); }
+      .item-row.conv-active { border-color: hsl(var(--primary)); background: hsl(var(--accent-soft)); }
+
       /* Toast (Sonner-style) */
       .toast {
         position: fixed; bottom: 104px; left: 50%; transform: translate(-50%, 12px);
@@ -609,11 +656,59 @@
         .pic-grid { gap: 8px; }
         .close-pill { padding: 0 12px; }
       }
+
+      /* ---------- Compatibility pass: touch, keyboard & odd viewports ---------- */
+      /* iOS Safari / Telegram WebView zooms the page when a focused field is
+         under 16px — keep fields at 16px on phone widths so tapping an input
+         never shifts the layout. */
+      @media (max-width: 720px) {
+        .text-input, .text-area, .search-inner input, .chat-form input { font-size: 16px; }
+      }
+      /* Long tab label («المحادثة الرئيسية») must never squeeze its neighbours. */
+      .tab-btn span { line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+      @media (max-width: 360px) {
+        .tab-btn { font-size: 11px; gap: 2px; padding-inline: 1px; }
+      }
+      /* Short landscape viewports (phones on their side): compact chrome so
+         the content — not the bars — gets the height. */
+      @media (orientation: landscape) and (max-height: 540px) {
+        .appbar { min-height: calc(48px + env(safe-area-inset-top)); padding-top: calc(6px + env(safe-area-inset-top)); padding-bottom: 6px; }
+        .profile { padding: 14px 24px 2px; }
+        .profile .avatar-wrap { width: 60px; height: 60px; margin-bottom: 8px; }
+        .profile img.avatar, .profile .avatar-letter { width: 60px; height: 60px; }
+        .profile .avatar-letter { font-size: 26px; }
+        .profile .desc { margin-top: 6px; line-height: 1.7; }
+        .section-title { margin-top: 18px; }
+        .tab-btn { min-height: 44px; padding-top: 4px; }
+        .tab-btn svg { width: 19px; height: 19px; }
+        main { padding-bottom: 84px; }
+        .toast { bottom: 76px; }
+      }
+      /* Toast sits above the tab bar on tab views; on sub views the bar is
+         hidden, so it can rest lower. */
+      body.nav-sub .toast { bottom: 28px; }
+      /* Drawer reading column on roomier screens + a slim scrollbar. */
+      @media (min-width: 720px) { .drawer { width: 360px; } }
+      .drawer-body { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
+      .drawer-body::-webkit-scrollbar { width: 5px; }
+      .drawer-body::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 9999px; }
+      /* Desktop: the four home shortcuts read as one row, and on very wide
+         monitors the app column lifts off the pure-black page behind it. */
+      @media (min-width: 1100px) {
+        .grid { grid-template-columns: repeat(4, 1fr); }
+      }
+      @media (min-width: 1400px) {
+        body { background: hsl(240 9% 5.5%); }
+        .app { box-shadow: 0 0 60px rgba(0, 0, 0, 0.55); }
+      }
     </style>
   </head>
   <body>
     <div class="app">
       <header class="appbar" id="appbar">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="فتح اللوحة الجانبية — المحادثات">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
         <button class="close-pill" id="closeBtn" type="button" aria-label="إغلاق">
           <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 1l12 12M13 1L1 13"/></svg>
           إغلاق
@@ -653,7 +748,7 @@
             <button class="grid-btn" type="button" data-go="view-from" data-search="رسالة من حيدرة from_haedara">رسالة من حيدرة</button>
             <button class="grid-btn" type="button" data-go="view-study" data-search="الدراسة ساعدني في الدراسة study">ساعدني في الدراسة</button>
             <button class="grid-btn" type="button" data-go="view-reminders" data-search="تذكيراتي تذكير remind">تذكيراتي</button>
-            <button class="grid-btn" type="button" data-go="view-chat" data-search="محادثتي محادثة البوت شات">محادثتي مع البوت</button>
+            <button class="grid-btn" type="button" data-go="view-chat" data-search="محادثتي محادثة البوت شات المحادثة الرئيسية">المحادثة الرئيسية</button>
           </div>
 
           <div class="status-card" aria-label="حالة البوت">
@@ -708,7 +803,7 @@
 
         <!-- ============ MY CHAT ============ -->
         <section class="view" id="view-chat">
-          <p class="chat-note">أنشئي أكثر من محادثة وخصّصي كل واحدة لموضوع وطريقة معاملة تختارينهما — دراسة، ترجمة، أفكار… التخصيص يسري داخل محادثته فقط، و«المحادثة العامة» تبقى كما هي دائماً. ومحادثاتك واحدة في تيليجرام وهنا: أنشئيها من أيّ جهة وافتحيها واكمليها من الجهة الأخرى.</p>
+          <p class="chat-note">هذه محادثتك الرئيسية — لأي موضوع. لإنشاء محادثة جديدة يكفي أن تختاري اسمها من اللوحة الجانبية (زر القائمة في الأعلى)، ومنها أيضاً تفتحين أي محادثة سابقة. وإن أردتِ تغيير الأسلوب أو الموضوع داخل أي محادثة، اطلبي ذلك مني أثناء الدردشة نفسها. ومحادثاتك واحدة في تيليجرام وهنا: أنشئيها من أيّ جهة وافتحيها واكمليها من الجهة الأخرى.</p>
 
           <div class="form-card" id="linkCard" style="margin:0 16px 14px">
             <span class="field-label" style="margin-bottom:4px">ربط التطبيق بسجلّ محادثاتك</span>
@@ -729,21 +824,9 @@
             </div>
           </div>
 
-          <div id="convListWrap">
-            <h2 class="section-title" style="margin-top:4px">محادثاتي</h2>
-            <div class="item-list" id="convList"></div>
-            <div class="empty-state" id="convEmpty">لا محادثات بعد.<br />أنشئي أول محادثة من النموذج في الأسفل.</div>
-            <div class="form-card">
-              <label class="field-label" for="convTitle">محادثة جديدة</label>
-              <input class="text-input" id="convTitle" type="text" maxlength="60" placeholder="اسم المحادثة — مثال: الدراسة" style="margin-bottom:9px" />
-              <input class="text-input" id="convPurpose" type="text" maxlength="120" placeholder="موضوعها — مثال: شرح الدروس وحلّ التمارين فقط" aria-label="موضوع المحادثة" style="margin-bottom:9px" />
-              <input class="text-input" id="convStyle" type="text" maxlength="120" placeholder="طريقة المعاملة — مثال: اشرحي ببساطة وبأمثلة قصيرة (اختياري)" aria-label="طريقة معاملة المحادثة" />
-            </div>
-            <button class="save-btn" type="button" id="addConv">إنشاء المحادثة</button>
-            <button class="ghost-btn" type="button" id="openBotChatBtn">فتح محادثة البوت في تيليجرام</button>
-          </div>
+          <button class="ghost-btn" type="button" id="openBotChatBtn" style="margin:14px 16px 0">فتح محادثة البوت في تيليجرام</button>
 
-          <div id="convChatWrap" class="hidden">
+          <div id="convChatWrap">
             <div class="conv-head">
               <button class="chip" type="button" id="convBack">كل المحادثات</button>
               <span class="tt"><span class="t1" id="convHeadTitle"></span><span class="t2" id="convHeadPurpose"></span></span>
@@ -772,9 +855,9 @@
           <h2 class="section-title">إعدادات البوت</h2>
           <div class="grid" id="settingsGrid">
             <button class="grid-btn" type="button" data-go="view-name" data-search="تعديل الاسم اسم البوت">تعديل الاسم</button>
-            <button class="grid-btn" type="button" data-go="view-about" data-search="تعديل النبذة about من أنا">تعديل النبذة</button>
+            <button class="grid-btn" type="button" data-go="view-about" data-search="النبذة about من أنا عرض">النبذة</button>
             <button class="grid-btn" type="button" data-go="view-botpic" data-search="تغيير الصورة صورة البوت botpic">تغيير الصورة</button>
-            <button class="grid-btn" type="button" data-go="view-commands" data-search="تعديل الأوامر قائمة الأوامر commands">تعديل الأوامر</button>
+            <button class="grid-btn" type="button" data-go="view-commands" data-search="الأوامر قائمة الأوامر commands عرض">الأوامر</button>
             <button class="grid-btn" type="button" data-go="view-morning" data-search="رسالة الصباح صباحو رسائل حيدرة">رسالة الصباح</button>
           </div>
           <p class="lock-note">
@@ -823,16 +906,16 @@
           <button class="save-btn" type="button" id="saveName">حفظ الاسم</button>
         </section>
 
-        <!-- ============ EDIT ABOUT ============ -->
+        <!-- ============ ABOUT (view only) ============ -->
         <section class="view" id="view-about">
-          <div class="prompt-bubble">حسناً. أرسلي نصّ «النبذة» الجديد. يظهر هذا النص عند فتح /about، ويُرسل مع رابط البوت عندما يشاركه أحد.</div>
+          <div class="prompt-bubble">هذا هو نصّ «النبذة» الحالي للبوت. يظهر عند فتح /about، ويُرسل مع رابط البوت عندما يشاركه أحد.</div>
           <div class="form-card">
-            <label class="field-label" for="aboutInput">نصّ النبذة</label>
-            <textarea class="text-area" id="aboutInput" rows="14"></textarea>
-            <div class="char-count"><span id="aboutCount">0</span> حرف</div>
+            <p class="about-text" id="aboutViewText"></p>
           </div>
-          <button class="save-btn" type="button" id="saveAbout">حفظ النبذة</button>
-          <button class="ghost-btn" type="button" id="copyAbout">نسخ النصّ</button>
+          <p class="lock-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>النبذة ثابتة كما ضبطها حيدرة، وتُعرض هنا للاطّلاع فقط.</span>
+          </p>
         </section>
 
         <!-- ============ EDIT BOTPIC ============ -->
@@ -864,18 +947,14 @@
           <p class="hint">أو أرسلي أي صورة من هاتفك في محادثة البوت واكتبي: «اجعلي هذه صورة البوت».</p>
         </section>
 
-        <!-- ============ EDIT COMMANDS ============ -->
+        <!-- ============ COMMANDS (view only) ============ -->
         <section class="view" id="view-commands">
-          <div class="prompt-bubble">حسناً. أرسلي قائمة أوامر للبوت بهذه الصيغة:
-            <br /><code>command1 - Description</code>
-            <br /><code>command2 - Another description</code>
-            <br />كل أمر في سطر مستقل.</div>
+          <div class="prompt-bubble">هذه هي قائمة أوامر البوت الحالية كما هي مضبوطة، مع وصف كل أمر.</div>
           <div class="cmd-list" id="cmdList"></div>
-          <div class="form-card">
-            <label class="field-label" for="cmdInput">قائمة الأوامر</label>
-            <textarea class="text-area" id="cmdInput" rows="7" dir="ltr" style="text-align:left"></textarea>
-          </div>
-          <button class="save-btn" type="button" id="saveCmds">حفظ الأوامر</button>
+          <p class="lock-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>قائمة الأوامر ثابتة كما ضبطها حيدرة، وتُعرض هنا للاطّلاع فقط. ولاستعمال أي أمر، افتحي تبويب «أوامري» واضغطيه فيُرسل إلى البوت.</span>
+          </p>
         </section>
 
         <!-- ============ MORNING MESSAGE ============ -->
@@ -1004,6 +1083,51 @@
       </main>
     </div>
 
+    <div class="drawer-scrim" id="drawerScrim"></div>
+    <aside class="drawer" id="drawer" aria-label="اللوحة الجانبية" aria-hidden="true">
+      <div class="drawer-head">
+        <span class="drawer-title">المحادثات</span>
+        <button class="icon-btn" type="button" id="drawerClose" aria-label="إغلاق اللوحة الجانبية">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="drawer-body">
+        <div class="form-card">
+          <label class="field-label" for="convTitle">محادثة جديدة</label>
+          <input class="text-input" id="convTitle" type="text" maxlength="60" placeholder="اسم المحادثة — مثال: الدراسة" />
+        </div>
+        <button class="save-btn" type="button" id="addConv">إنشاء المحادثة</button>
+
+        <h3 class="drawer-sub">فتح محادثة</h3>
+        <div class="item-list" id="convList"></div>
+        <div class="empty-state" id="convEmpty">لا محادثات بعد.<br />أنشئي أول محادثة من النموذج في الأعلى.</div>
+
+        <h3 class="drawer-sub">أقسام أخرى</h3>
+        <div class="list-card">
+          <button class="list-row" type="button" data-go="view-orders">
+            <span class="ic ic-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 6H21M8.5 12H21M8.5 18H21"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg></span>
+            <span class="tt"><span class="t1">أوامري</span><span class="t2">الأوامر المتفق عليها مع البوت</span></span>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+          </button>
+          <button class="list-row" type="button" data-go="view-space">
+            <span class="ic ic-pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/></svg></span>
+            <span class="tt"><span class="t1">مساحتي</span><span class="t2">إعدادات البوت ومساحتك الخاصة</span></span>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+          </button>
+          <button class="list-row" type="button" data-go="view-rules">
+            <span class="ic ic-green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z"/><path d="M9 11.5l2 2 4-4.5"/></svg></span>
+            <span class="tt"><span class="t1">القواعد والخصوصية</span><span class="t2">حول البوت وقواعده الصارمة</span></span>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+          </button>
+          <button class="list-row" type="button" data-go="view-from">
+            <span class="ic ic-violet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg></span>
+            <span class="tt"><span class="t1">رسالة من حيدرة</span><span class="t2">رسالة من مكتبة كتبها حيدرة بكلماته</span></span>
+            <span class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
     <nav class="tabbar" id="tabbar" aria-label="التنقّل الرئيسي">
       <button class="tab-btn active" type="button" data-tab="view-main" data-go="view-main">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/></svg>
@@ -1011,7 +1135,7 @@
       </button>
       <button class="tab-btn" type="button" data-tab="view-chat" data-go="view-chat">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.5 0-3-.4-4.2-1.1L3 20l1.1-5.3A8.5 8.5 0 1 1 21 11.5z"/></svg>
-        <span>محادثتي</span>
+        <span>المحادثة الرئيسية</span>
       </button>
       <button class="tab-btn" type="button" data-tab="view-orders" data-go="view-orders">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 6H21M8.5 12H21M8.5 18H21"/><path d="M3.5 6h.01M3.5 12h.01M3.5 18h.01"/></svg>
@@ -1050,7 +1174,7 @@
             { cmd: "draw", desc: "ارسمي صورة من وصفك" },
             { cmd: "remind", desc: "ذكّريني بشيء في وقته" },
             { cmd: "study", desc: "ساعدني في الدراسة" },
-            { cmd: "newchat", desc: "أنشئي محادثة جديدة بموضوع وطريقة معاملة خاصة" },
+            { cmd: "newchat", desc: "أنشئي محادثة جديدة باسم تختارينه" },
             { cmd: "chats", desc: "اعرضي كل محادثاتك" },
             { cmd: "switch", desc: "انتقلي إلى محادثة أخرى" },
             { cmd: "delchat", desc: "احذفي محادثة" },
@@ -1070,13 +1194,13 @@
 
         var TITLES = {
           "view-main": "الرئيسية",
-          "view-chat": "محادثتي",
+          "view-chat": "المحادثة الرئيسية",
           "view-orders": "أوامري",
           "view-space": "مساحتي",
           "view-name": "تعديل الاسم",
-          "view-about": "تعديل النبذة",
+          "view-about": "النبذة",
           "view-botpic": "صورة البوت",
-          "view-commands": "تعديل الأوامر",
+          "view-commands": "الأوامر",
           "view-morning": "رسالة الصباح",
           "view-from": "رسالة من حيدرة",
           "view-study": "ساعدني في الدراسة",
@@ -1134,9 +1258,35 @@
           });
           window.scrollTo(0, 0);
         }
+        /* ---------- Side drawer ---------- */
+        function openDrawer() {
+          $("drawer").classList.add("open");
+          $("drawer").setAttribute("aria-hidden", "false");
+          $("drawerScrim").classList.add("show");
+          document.body.style.overflow = "hidden";
+        }
+        function closeDrawer() {
+          $("drawer").classList.remove("open");
+          $("drawer").setAttribute("aria-hidden", "true");
+          $("drawerScrim").classList.remove("show");
+          document.body.style.overflow = "";
+        }
+        $("menuBtn").addEventListener("click", openDrawer);
+        $("drawerClose").addEventListener("click", closeDrawer);
+        $("drawerScrim").addEventListener("click", closeDrawer);
+        document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeDrawer(); });
+
         document.addEventListener("click", function (e) {
           var el = e.target.closest ? e.target.closest("[data-go]") : null;
-          if (el) go(el.getAttribute("data-go"));
+          if (el) {
+            var target = el.getAttribute("data-go");
+            go(target);
+            /* The bottom bar (and home shortcuts) lead to the MAIN
+               conversation only; every other conversation is opened
+               from the side drawer. */
+            if (target === "view-chat") openMainConversation();
+            if (el.closest && el.closest("#drawer")) closeDrawer();
+          }
         });
         $("backBtn").addEventListener("click", function () { go(PARENT[currentView] || "view-main"); });
         $("closeBtn").addEventListener("click", function () {
@@ -1228,25 +1378,9 @@
           go("view-space");
         });
 
-        $("aboutInput").value = state.about;
+        /* About is view-only here — set by Haedara, never edited from this app. */
         $("aboutPreview").textContent = state.about;
-        function countChars(inputId, countId) {
-          $(countId).textContent = $(inputId).value.length;
-        }
-        $("aboutInput").addEventListener("input", function () { countChars("aboutInput", "aboutCount"); });
-        countChars("aboutInput", "aboutCount");
-        $("saveAbout").addEventListener("click", function () {
-          var v = $("aboutInput").value.trim();
-          if (!v) { toast("النبذة فارغة"); return; }
-          state.about = v;
-          $("aboutPreview").textContent = v;
-          dispatch({ type: "set_about", about: v });
-          toast("تمّ حفظ النبذة");
-          go("view-space");
-        });
-        $("copyAbout").addEventListener("click", function () {
-          copyText($("aboutInput").value, "تمّ نسخ نصّ النبذة");
-        });
+        $("aboutViewText").textContent = state.about;
 
         /* ---------- Commands ---------- */
         function renderCommands() {
@@ -1265,29 +1399,11 @@
             row.appendChild(d);
             list.appendChild(row);
           });
-          $("cmdInput").value = state.commands.map(function (c) { return c.cmd + " - " + c.desc; }).join("\n");
           renderStatus();
           renderQuickCommands();
         }
-        $("saveCmds").addEventListener("click", function () {
-          var lines = $("cmdInput").value.split("\n");
-          var parsed = [];
-          for (var i = 0; i < lines.length; i++) {
-            var line = lines[i].trim();
-            if (!line) continue;
-            var parts = line.split(/\s+-\s+/);
-            var cmd = (parts[0] || "").trim().toLowerCase().replace(/^\//, "");
-            var desc = (parts.slice(1).join(" - ") || "").trim();
-            if (!/^[a-z0-9_]+$/.test(cmd)) { toast("صيغة غير صحيحة في السطر: " + line); return; }
-            parsed.push({ cmd: cmd, desc: desc || "بدون وصف" });
-          }
-          if (!parsed.length) { toast("القائمة فارغة"); return; }
-          state.commands = parsed;
-          renderCommands();
-          dispatch({ type: "set_commands", commands: parsed });
-          toast("تمّ حفظ الأوامر");
-          go("view-space");
-        });
+        /* Commands are view-only here too — the list is rendered for
+           reading (and mirrored into the «أوامري» tab), never edited. */
 
         /* ---------- Morning ---------- */
         $("morningSwitch").addEventListener("click", function () {
@@ -1303,17 +1419,19 @@
         });
 
         /* ---------- Conversations — one record with Muse, two windows onto it ----------
-           Maria can open several conversations, each dedicated to a topic she
-           names AND a way of being treated (style) she chooses; the style
-           applies inside that conversation only, and «المحادثة العامة» always
-           keeps its default manner. Creating, switching and deleting here are
+           Maria can open several conversations; creating one asks for its
+           name only — no topic, no treatment style. If she wants a different
+           style or anything else inside a conversation, she asks for it in
+           the chat itself. Creating, switching and deleting here are
            forwarded to Muse via the bot (sendData), and every message is
-           tagged with its conversation's title, purpose and style, so Muse
-           files it under the right thread in his own log — the same log that
-           records everything she sends from Telegram. On top of that, the bot
-           syncs that log to a shared store; with her one-time /link code this
-           app reads the store back (see the shared-store section below), so a
-           conversation created in Telegram opens here, and vice versa. */
+           tagged with its conversation's title, so Muse files it under the
+           right thread in his own log — the same log that records everything
+           she sends from Telegram. On top of that, the bot syncs that log to
+           a shared store; with her one-time /link code this app reads the
+           store back (see the shared-store section below), so a conversation
+           created in Telegram opens here, and vice versa. (purpose/style
+           fields survive only so older synced conversations still display
+           what the log recorded for them; nothing new sets them.) */
         var HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
         var SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
         var conversations = [];
@@ -1339,7 +1457,7 @@
           list.innerHTML = "";
           conversations.forEach(function (c) {
             var row = document.createElement("div");
-            row.className = "item-row clickable";
+            row.className = "item-row clickable" + (c.id === activeConvId ? " conv-active" : "");
             var body = document.createElement("span");
             body.className = "body";
             var m = document.createElement("span");
@@ -1351,7 +1469,8 @@
             }
             var s = document.createElement("span");
             s.className = "sub-line";
-            var parts = [c.purpose || "بدون موضوع محدّد"];
+            var parts = [];
+            if (c.purpose) parts.push(c.purpose);
             if (c.style) parts.push("المعاملة: " + c.style);
             parts.push(c.history.length + (c.history.length === 1 ? " رسالة" : " رسائل"));
             s.textContent = parts.join(" · ");
@@ -1365,7 +1484,10 @@
               if (e.stopPropagation) e.stopPropagation();
               dispatch({ type: "delete_conversation", title: c.title });
               conversations = conversations.filter(function (x) { return x.id !== c.id; });
-              if (activeConvId === c.id) activeConvId = null;
+              if (activeConvId === c.id) {
+                var gen = generalConv();
+                if (gen) { activeConvId = gen.id; setConvHead(gen); renderChat(); }
+              }
               renderConvList();
               toast("حُذفت محادثة «" + c.title + "»");
             });
@@ -1378,42 +1500,51 @@
           });
           $("convEmpty").style.display = conversations.length ? "none" : "block";
         }
+        function generalConv() {
+          for (var i = 0; i < conversations.length; i++) {
+            if (conversations[i].isGeneral) return conversations[i];
+          }
+          return conversations[0] || null;
+        }
+        function setConvHead(c) {
+          $("convHeadTitle").textContent = c.title;
+          var headParts = [];
+          if (c.purpose) headParts.push(c.purpose);
+          if (c.style) headParts.push("طريقة المعاملة: " + c.style);
+          if (!headParts.length) {
+            headParts.push(c.isGeneral ? "محادثة عامة — لأي موضوع" : "اطلبي داخل المحادثة تغيير الأسلوب أو أي شيء آخر متى شئتِ");
+          }
+          $("convHeadPurpose").textContent = headParts.join(" · ");
+        }
         function openConversation(id) {
           var c = null;
           conversations.forEach(function (x) { if (x.id === id) c = x; });
           if (!c) return;
           activeConvId = id;
-          $("convHeadTitle").textContent = c.title;
-          var headParts = [c.purpose || "محادثة عامة — لأي موضوع"];
-          if (c.style) headParts.push("طريقة المعاملة: " + c.style);
-          $("convHeadPurpose").textContent = headParts.join(" · ");
-          $("convListWrap").classList.add("hidden");
-          $("convChatWrap").classList.remove("hidden");
+          setConvHead(c);
+          if (currentView !== "view-chat") go("view-chat");
+          closeDrawer();
+          renderConvList();
           renderChat();
           dispatch({ type: "switch_conversation", title: c.title });
           window.scrollTo(0, 0);
         }
-        function closeConversation() {
-          activeConvId = null;
-          $("convChatWrap").classList.add("hidden");
-          $("convListWrap").classList.remove("hidden");
-          renderConvList();
-          window.scrollTo(0, 0);
+        /* The bottom bar's chat entry opens the main (general)
+           conversation only — never the conversation list. */
+        function openMainConversation() {
+          var gen = generalConv();
+          if (gen) openConversation(gen.id);
         }
-        $("convBack").addEventListener("click", closeConversation);
+        $("convBack").addEventListener("click", openDrawer);
         $("addConv").addEventListener("click", function () {
           var title = $("convTitle").value.trim();
-          var purpose = $("convPurpose").value.trim();
-          var style = $("convStyle").value.trim();
           if (!title) { toast("اكتبي اسم المحادثة أولاً"); $("convTitle").focus(); return; }
           var dup = false;
           conversations.forEach(function (x) { if (x.title === title) dup = true; });
           if (dup) { toast("توجد محادثة بهذا الاسم أصلاً — اختاري اسماً آخر"); $("convTitle").focus(); return; }
-          var c = addConversation(title, purpose, style);
+          var c = addConversation(title, "", "");
           $("convTitle").value = "";
-          $("convPurpose").value = "";
-          $("convStyle").value = "";
-          dispatch({ type: "new_conversation", title: title, purpose: purpose, style: style });
+          dispatch({ type: "new_conversation", title: title });
           toast("أُنشئت محادثة «" + title + "»");
           openConversation(c.id);
         });
@@ -1440,6 +1571,8 @@
           if (!c.history.length) {
             if (c.purpose) {
               addChatMsg("أهلاً مادو 🥹💗 هذه محادثة «" + c.title + "» — " + c.purpose + (c.style ? ". طريقة معاملتي هنا: " + c.style : "") + ". اكتبي أول رسالة هنا، وستصلني ضمن هذه المحادثة وحدها.", "bot");
+            } else if (!c.isGeneral) {
+              addChatMsg("أهلاً مادو 🥹💗 هذه محادثة «" + c.title + "» الجديدة. اكتبي أول رسالة هنا، وستصلني ضمن هذه المحادثة وحدها — وإن أردتِ تغيير الأسلوب أو أي شيء آخر، اطلبيه مني هنا أثناء الدردشة.", "bot");
             } else {
               addChatMsg("أهلاً مادو 🥹💗 أنا Muse. اسأليني عن أي شيء، أو أرسلي لي درساً أشرحه لك خطوة بخطوة.", "bot");
             }
@@ -1452,7 +1585,7 @@
           if (!c) return;
           c.history.push({ who: "user", text: text });
           var row = addChatMsg(text, "user");
-          dispatch({ type: "message", conversation: c.title, purpose: c.purpose, style: c.style, text: text });
+          dispatch({ type: "message", conversation: c.title, text: text });
           if (row && row.scrollIntoView) row.scrollIntoView({ behavior: "smooth", block: "nearest" });
           toast("أُرسلت إلى Muse في محادثة «" + c.title + "»");
         }
@@ -1835,6 +1968,8 @@
         renderReminders();
         renderMemory();
         renderConvList();
+        var genConv = generalConv();
+        if (genConv) { activeConvId = genConv.id; setConvHead(genConv); renderChat(); renderConvList(); }
       })();
     </script>
   </body>
