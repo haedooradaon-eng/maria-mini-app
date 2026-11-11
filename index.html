@@ -493,6 +493,29 @@
 
       .starter-wrap { padding: 0 16px; }
 
+      /* Conversations list / open-conversation header */
+      .item-row.clickable { cursor: pointer; }
+      .item-row .chev { color: hsl(var(--muted-foreground)); flex: none; display: flex; }
+      .item-row .chev svg { width: 17px; height: 17px; }
+      .conv-head { display: flex; align-items: center; gap: 10px; margin: 16px 16px 12px; }
+      .conv-head .tt { flex: 1; min-width: 0; }
+      .conv-head .t1 { font-size: 16px; font-weight: 600; display: block; line-height: 1.45; overflow-wrap: anywhere; }
+      .conv-head .t2 { font-size: 13px; color: hsl(var(--muted-foreground)); display: block; margin-top: 1px; line-height: 1.6; overflow-wrap: anywhere; }
+
+      /* Shared-store link card */
+      .form-card code {
+        direction: ltr; unicode-bidi: embed;
+        background: hsl(var(--muted)); border: 1px solid hsl(var(--border));
+        padding: 1px 7px; border-radius: 6px; font-size: 13px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .active-badge {
+        background: hsl(var(--primary)); color: #fff;
+        font-size: 11px; font-weight: 600; line-height: 1.5;
+        border-radius: 9999px; padding: 1px 8px; margin-inline-start: 7px;
+        vertical-align: middle; white-space: nowrap;
+      }
+
       /* Capability cards */
       .cap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; }
       .cap-card { padding: 14px; transition: border-color 0.15s ease, background 0.15s ease; }
@@ -562,7 +585,7 @@
       @media (max-width: 400px) {
         .appbar { padding: 10px 12px; }
         .status-card, .list-card, .form-card, .msg-card, .switch-row,
-        .chat-card, .cmd-list, .item-list, .mode-cards, .empty-state { margin-inline: 12px; }
+        .chat-card, .cmd-list, .item-list, .mode-cards, .empty-state, .conv-head { margin-inline: 12px; }
         .mode-card { width: calc(100% - 24px); margin-inline: 12px; }
         .mode-cards .mode-card { width: 100%; margin: 0; }
         .save-btn, .ghost-btn, .danger-btn { width: calc(100% - 24px); margin-inline: 12px; }
@@ -685,24 +708,63 @@
 
         <!-- ============ MY CHAT ============ -->
         <section class="view" id="view-chat">
-          <p class="chat-note">المحادثة محفوظة عند Muse نفسه: كل ما ترسلينه — من هنا أو من تيليجرام — يصل إليه ويُحفظ في سجلّه. التطبيق وتيليجرام نافذتان إليه فحسب، وردوده تصلك في تيليجرام.</p>
-          <div class="chat-card" aria-label="محادثتي مع البوت">
-            <div id="chatLog" style="display:flex; flex-direction:column; gap:12px"></div>
-            <form class="chat-form" id="chatForm">
-              <input type="text" id="chatInput" placeholder="اكتبي رسالتك هنا…" aria-label="اكتبي رسالتك" autocomplete="off" />
-              <button class="send-btn" type="submit" aria-label="إرسال">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-              </button>
-            </form>
+          <p class="chat-note">أنشئي أكثر من محادثة وخصّصي كل واحدة لموضوع وطريقة معاملة تختارينهما — دراسة، ترجمة، أفكار… التخصيص يسري داخل محادثته فقط، و«المحادثة العامة» تبقى كما هي دائماً. ومحادثاتك واحدة في تيليجرام وهنا: أنشئيها من أيّ جهة وافتحيها واكمليها من الجهة الأخرى.</p>
+
+          <div class="form-card" id="linkCard" style="margin:0 16px 14px">
+            <span class="field-label" style="margin-bottom:4px">ربط التطبيق بسجلّ محادثاتك</span>
+            <p class="hint" style="margin:0 0 10px">ليعرض التطبيق المحادثات التي أنشأتِها من تيليجرام وسجلّ رسائلها، اربطيه مرة واحدة: أرسلي <code>/link</code> للبوت في تيليجرام، والصقي هنا الرمز الذي يردّ به.</p>
+            <div id="linkForm">
+              <div style="display:flex; gap:8px">
+                <input class="text-input" id="linkCode" type="text" placeholder="رمز الربط من البوت" aria-label="رمز الربط" style="flex:1" autocomplete="off" autocapitalize="none" />
+                <button class="chip" type="button" id="linkBtn" style="background:var(--accent); color:#fff; min-height:42px">ربط</button>
+              </div>
+              <p class="hint" id="linkError" style="margin:8px 0 0; display:none"></p>
+            </div>
+            <div id="linkInfo" class="hidden">
+              <p class="hint" style="margin:0 0 10px" id="linkStatus">مرتبط بسجلّ Muse — محادثاتك هنا هي نفسها في تيليجرام.</p>
+              <div style="display:flex; gap:8px; flex-wrap:wrap">
+                <button class="chip" type="button" id="refreshState">تحديث المحادثات</button>
+                <button class="chip" type="button" id="unlinkBtn">إلغاء الربط</button>
+              </div>
+            </div>
           </div>
-          <button class="ghost-btn" type="button" id="openBotChatBtn">فتح محادثة البوت في تيليجرام</button>
+
+          <div id="convListWrap">
+            <h2 class="section-title" style="margin-top:4px">محادثاتي</h2>
+            <div class="item-list" id="convList"></div>
+            <div class="empty-state" id="convEmpty">لا محادثات بعد.<br />أنشئي أول محادثة من النموذج في الأسفل.</div>
+            <div class="form-card">
+              <label class="field-label" for="convTitle">محادثة جديدة</label>
+              <input class="text-input" id="convTitle" type="text" maxlength="60" placeholder="اسم المحادثة — مثال: الدراسة" style="margin-bottom:9px" />
+              <input class="text-input" id="convPurpose" type="text" maxlength="120" placeholder="موضوعها — مثال: شرح الدروس وحلّ التمارين فقط" aria-label="موضوع المحادثة" style="margin-bottom:9px" />
+              <input class="text-input" id="convStyle" type="text" maxlength="120" placeholder="طريقة المعاملة — مثال: اشرحي ببساطة وبأمثلة قصيرة (اختياري)" aria-label="طريقة معاملة المحادثة" />
+            </div>
+            <button class="save-btn" type="button" id="addConv">إنشاء المحادثة</button>
+            <button class="ghost-btn" type="button" id="openBotChatBtn">فتح محادثة البوت في تيليجرام</button>
+          </div>
+
+          <div id="convChatWrap" class="hidden">
+            <div class="conv-head">
+              <button class="chip" type="button" id="convBack">كل المحادثات</button>
+              <span class="tt"><span class="t1" id="convHeadTitle"></span><span class="t2" id="convHeadPurpose"></span></span>
+            </div>
+            <div class="chat-card" aria-label="محادثتي مع البوت">
+              <div id="chatLog" style="display:flex; flex-direction:column; gap:12px"></div>
+              <form class="chat-form" id="chatForm">
+                <input type="text" id="chatInput" placeholder="اكتبي رسالتك هنا…" aria-label="اكتبي رسالتك" autocomplete="off" />
+                <button class="send-btn" type="submit" aria-label="إرسال">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
         </section>
 
         <!-- ============ MY ORDERS ============ -->
         <section class="view" id="view-orders">
           <h2 class="section-title">الأوامر المتفق عليها</h2>
           <div class="list-card" id="quickCmdList"></div>
-          <p class="hint">هذه هي الأوامر الثلاثة عشر الموصّلة في البوت فقط. اضغطي أي أمر فيُرسل إلى البوت مباشرة داخل تيليجرام، أو يُنسخ إن فتحتِ التطبيق من المتصفح.</p>
+          <p class="hint">هذه هي الأوامر الموصّلة في البوت. اضغطي أي أمر فيُرسل إلى البوت مباشرة داخل تيليجرام، أو يُنسخ إن فتحتِ التطبيق من المتصفح.</p>
         </section>
 
         <!-- ============ MY SPACE ============ -->
@@ -987,7 +1049,12 @@
             { cmd: "summarize", desc: "لخّصي نصاً أو رابطاً" },
             { cmd: "draw", desc: "ارسمي صورة من وصفك" },
             { cmd: "remind", desc: "ذكّريني بشيء في وقته" },
-            { cmd: "study", desc: "ساعدني في الدراسة" }
+            { cmd: "study", desc: "ساعدني في الدراسة" },
+            { cmd: "newchat", desc: "أنشئي محادثة جديدة بموضوع وطريقة معاملة خاصة" },
+            { cmd: "chats", desc: "اعرضي كل محادثاتك" },
+            { cmd: "switch", desc: "انتقلي إلى محادثة أخرى" },
+            { cmd: "delchat", desc: "احذفي محادثة" },
+            { cmd: "link", desc: "رمز ربط التطبيق المصغّر بسجلّ محادثاتك" }
           ],
           morning: true,
           reminders: [],
@@ -1235,16 +1302,121 @@
           sendOrCopy("/from_haedara", "تمّ نسخ الأمر");
         });
 
-        /* ---------- Conversation — the record lives with Muse, not between app and Telegram ----------
-           There is no app<->Telegram sync and no storage in the app: every message
-           written here is only forwarded to Muse via the bot (sendData), and Muse
-           keeps the conversation in its own log — the same log that already records
-           everything she sends from Telegram and every reply. The app and the
-           Telegram chat are just two windows onto Muse; what she writes here is
-           shown for this session only and is not persisted by the app itself. */
+        /* ---------- Conversations — one record with Muse, two windows onto it ----------
+           Maria can open several conversations, each dedicated to a topic she
+           names AND a way of being treated (style) she chooses; the style
+           applies inside that conversation only, and «المحادثة العامة» always
+           keeps its default manner. Creating, switching and deleting here are
+           forwarded to Muse via the bot (sendData), and every message is
+           tagged with its conversation's title, purpose and style, so Muse
+           files it under the right thread in his own log — the same log that
+           records everything she sends from Telegram. On top of that, the bot
+           syncs that log to a shared store; with her one-time /link code this
+           app reads the store back (see the shared-store section below), so a
+           conversation created in Telegram opens here, and vice versa. */
         var HEART_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>';
         var SEND_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
-        var chatHistory = [];
+        var conversations = [];
+        var convSeq = 0;
+        var activeConvId = null;
+        function addConversation(title, purpose, style) {
+          convSeq += 1;
+          var c = { id: convSeq, title: title, purpose: purpose || "", style: style || "", history: [], isGeneral: title === "المحادثة العامة", remoteActive: false };
+          conversations.push(c);
+          return c;
+        }
+        addConversation("المحادثة العامة", "");
+        function activeConv() {
+          for (var i = 0; i < conversations.length; i++) {
+            if (conversations[i].id === activeConvId) return conversations[i];
+          }
+          return null;
+        }
+        var TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+        var CHEV_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>';
+        function renderConvList() {
+          var list = $("convList");
+          list.innerHTML = "";
+          conversations.forEach(function (c) {
+            var row = document.createElement("div");
+            row.className = "item-row clickable";
+            var body = document.createElement("span");
+            body.className = "body";
+            var m = document.createElement("span");
+            m.className = "main-line"; m.textContent = c.title;
+            if (c.remoteActive) {
+              var bd = document.createElement("span");
+              bd.className = "active-badge"; bd.textContent = "النشطة الآن";
+              m.appendChild(bd);
+            }
+            var s = document.createElement("span");
+            s.className = "sub-line";
+            var parts = [c.purpose || "بدون موضوع محدّد"];
+            if (c.style) parts.push("المعاملة: " + c.style);
+            parts.push(c.history.length + (c.history.length === 1 ? " رسالة" : " رسائل"));
+            s.textContent = parts.join(" · ");
+            body.appendChild(m); body.appendChild(s);
+            var del = document.createElement("button");
+            del.type = "button";
+            del.className = "icon-btn danger";
+            del.setAttribute("aria-label", "حذف المحادثة");
+            del.innerHTML = TRASH_SVG;
+            del.addEventListener("click", function (e) {
+              if (e.stopPropagation) e.stopPropagation();
+              dispatch({ type: "delete_conversation", title: c.title });
+              conversations = conversations.filter(function (x) { return x.id !== c.id; });
+              if (activeConvId === c.id) activeConvId = null;
+              renderConvList();
+              toast("حُذفت محادثة «" + c.title + "»");
+            });
+            var chev = document.createElement("span");
+            chev.className = "chev";
+            chev.innerHTML = CHEV_SVG;
+            row.appendChild(body); if (!c.isGeneral) row.appendChild(del); row.appendChild(chev);
+            row.addEventListener("click", function () { openConversation(c.id); });
+            list.appendChild(row);
+          });
+          $("convEmpty").style.display = conversations.length ? "none" : "block";
+        }
+        function openConversation(id) {
+          var c = null;
+          conversations.forEach(function (x) { if (x.id === id) c = x; });
+          if (!c) return;
+          activeConvId = id;
+          $("convHeadTitle").textContent = c.title;
+          var headParts = [c.purpose || "محادثة عامة — لأي موضوع"];
+          if (c.style) headParts.push("طريقة المعاملة: " + c.style);
+          $("convHeadPurpose").textContent = headParts.join(" · ");
+          $("convListWrap").classList.add("hidden");
+          $("convChatWrap").classList.remove("hidden");
+          renderChat();
+          dispatch({ type: "switch_conversation", title: c.title });
+          window.scrollTo(0, 0);
+        }
+        function closeConversation() {
+          activeConvId = null;
+          $("convChatWrap").classList.add("hidden");
+          $("convListWrap").classList.remove("hidden");
+          renderConvList();
+          window.scrollTo(0, 0);
+        }
+        $("convBack").addEventListener("click", closeConversation);
+        $("addConv").addEventListener("click", function () {
+          var title = $("convTitle").value.trim();
+          var purpose = $("convPurpose").value.trim();
+          var style = $("convStyle").value.trim();
+          if (!title) { toast("اكتبي اسم المحادثة أولاً"); $("convTitle").focus(); return; }
+          var dup = false;
+          conversations.forEach(function (x) { if (x.title === title) dup = true; });
+          if (dup) { toast("توجد محادثة بهذا الاسم أصلاً — اختاري اسماً آخر"); $("convTitle").focus(); return; }
+          var c = addConversation(title, purpose, style);
+          $("convTitle").value = "";
+          $("convPurpose").value = "";
+          $("convStyle").value = "";
+          dispatch({ type: "new_conversation", title: title, purpose: purpose, style: style });
+          toast("أُنشئت محادثة «" + title + "»");
+          openConversation(c.id);
+        });
         function addChatMsg(text, who) {
           var row = document.createElement("div");
           row.className = "chat-row" + (who === "user" ? " user" : "");
@@ -1262,19 +1434,27 @@
           return row;
         }
         function renderChat() {
+          var c = activeConv();
           $("chatLog").innerHTML = "";
-          if (!chatHistory.length) {
-            addChatMsg("أهلاً مادو 🥹💗 أنا Muse. اسأليني عن أي شيء، أو أرسلي لي درساً أشرحه لك خطوة بخطوة.", "bot");
+          if (!c) return;
+          if (!c.history.length) {
+            if (c.purpose) {
+              addChatMsg("أهلاً مادو 🥹💗 هذه محادثة «" + c.title + "» — " + c.purpose + (c.style ? ". طريقة معاملتي هنا: " + c.style : "") + ". اكتبي أول رسالة هنا، وستصلني ضمن هذه المحادثة وحدها.", "bot");
+            } else {
+              addChatMsg("أهلاً مادو 🥹💗 أنا Muse. اسأليني عن أي شيء، أو أرسلي لي درساً أشرحه لك خطوة بخطوة.", "bot");
+            }
             return;
           }
-          chatHistory.forEach(function (m) { addChatMsg(m.text, m.who); });
+          c.history.forEach(function (m) { addChatMsg(m.text, m.who); });
         }
         function handleUserText(text) {
-          chatHistory.push({ who: "user", text: text });
+          var c = activeConv();
+          if (!c) return;
+          c.history.push({ who: "user", text: text });
           var row = addChatMsg(text, "user");
-          dispatch({ type: "message", text: text });
+          dispatch({ type: "message", conversation: c.title, purpose: c.purpose, style: c.style, text: text });
           if (row && row.scrollIntoView) row.scrollIntoView({ behavior: "smooth", block: "nearest" });
-          toast("أُرسلت إلى Muse — محفوظة في سجلّه عنده");
+          toast("أُرسلت إلى Muse في محادثة «" + c.title + "»");
         }
         $("chatForm").addEventListener("submit", function (e) {
           e.preventDefault();
@@ -1283,6 +1463,166 @@
           $("chatInput").value = "";
           handleUserText(v);
         });
+
+        /* ---------- Shared store — read Muse's record back into the app ----------
+           The bot syncs Maria's conversations (title, purpose, style, active)
+           and recent messages to a small Vercel store about every minute.
+           Reading needs her personal link code: she sends /link to the bot in
+           Telegram and pastes the code here once; it is kept in Telegram
+           CloudStorage (her own account storage), never in this page. The
+           normalizer below tolerates the plausible field spellings of the
+           synced state (name/title, topic/purpose, tone/style, flat message
+           list grouped by conversation name, or per-conversation history). */
+        var STORE_URL = "https://maria-bot-api.vercel.app/api/maria";
+        var linkCode = "";
+        var storeLinked = false;
+        var storeTimer = null;
+
+        function setLinkUI() {
+          $("linkForm").classList.toggle("hidden", storeLinked);
+          $("linkInfo").classList.toggle("hidden", !storeLinked);
+        }
+        function storeError(msg) {
+          var e = $("linkError");
+          e.textContent = msg || "";
+          e.style.display = msg ? "block" : "none";
+        }
+        function saveLinkCode() {
+          if (tg && tg.CloudStorage && tg.CloudStorage.setItem) {
+            try { tg.CloudStorage.setItem("maria_link_code", linkCode); } catch (e) {}
+          }
+        }
+        function clearLinkCode() {
+          if (tg && tg.CloudStorage && tg.CloudStorage.removeItem) {
+            try { tg.CloudStorage.removeItem("maria_link_code"); } catch (e) {}
+          }
+        }
+        function msgWho(m) {
+          var r = (m.who || m.role || m.from || m.sender || "").toString().toLowerCase();
+          if (r === "user" || r === "maria" || r === "human") return "user";
+          return "bot";
+        }
+        function msgText(m) { return (m.text || m.content || m.body || m.message || "").toString(); }
+        function msgConv(m) { return (m.conversation || m.conversation_title || m.chat || m.title || m.thread || "").toString(); }
+        function findConvByTitle(title) {
+          for (var i = 0; i < conversations.length; i++) {
+            if (conversations[i].title === title) return conversations[i];
+          }
+          return null;
+        }
+        function normMsg(m) {
+          if (typeof m === "string") return { who: "bot", text: m };
+          return { who: msgWho(m), text: msgText(m) };
+        }
+        function applyStoreState(data) {
+          var st = (data && (data.state || data.data)) || data || {};
+          var convs = st.conversations || st.chats || [];
+          var msgs = st.messages || st.history || [];
+          var activeName = st.active || st.active_conversation || st.active_title || "";
+          if (activeName && typeof activeName === "object") activeName = activeName.title || activeName.name || "";
+          if (Array.isArray(convs)) {
+            convs.forEach(function (sc) {
+              var title = typeof sc === "string" ? sc : (sc.title || sc.name || "");
+              if (!title) return;
+              var c = findConvByTitle(title);
+              if (!c) c = addConversation(title, "", "");
+              if (sc && typeof sc === "object") {
+                var p = sc.purpose || sc.topic || "";
+                var s = sc.style || sc.tone || sc.treatment || "";
+                if (p) c.purpose = p;
+                if (s) c.style = s;
+                var inner = sc.messages || sc.history;
+                if (Array.isArray(inner) && inner.length) {
+                  c.history = inner.map(normMsg).filter(function (m) { return m.text; });
+                }
+              }
+              c.remoteActive = !!activeName && title === activeName;
+            });
+          }
+          if (Array.isArray(msgs) && msgs.length) {
+            var grouped = {};
+            msgs.forEach(function (m) {
+              if (!m || typeof m === "string") return;
+              var t = msgConv(m) || "المحادثة العامة";
+              if (!grouped[t]) grouped[t] = [];
+              var nm = normMsg(m);
+              if (nm.text) grouped[t].push(nm);
+            });
+            Object.keys(grouped).forEach(function (t) {
+              var c = findConvByTitle(t);
+              if (!c) c = addConversation(t, "", "");
+              if (grouped[t].length >= c.history.length) c.history = grouped[t];
+            });
+          }
+          renderConvList();
+          if (activeConvId) renderChat();
+        }
+        function fetchStore(opts) {
+          opts = opts || {};
+          if (!linkCode) return;
+          fetch(STORE_URL + "?action=state&code=" + encodeURIComponent(linkCode))
+            .then(function (r) {
+              return r.json().catch(function () { return null; }).then(function (j) { return { status: r.status, json: j }; });
+            })
+            .then(function (res) {
+              if (!res.json || res.json.ok === false || res.status >= 400) {
+                if (res.json && res.json.error === "bad_code") {
+                  storeLinked = false;
+                  setLinkUI();
+                  storeError("الرمز غير صحيح أو لم يعد صالحاً — اطلبي رمزاً جديداً بإرسال /link للبوت في تيليجرام.");
+                } else if (!opts.silent) {
+                  storeError("تعذّر قراءة السجلّ الآن — حاولي مجدداً بعد قليل.");
+                }
+                return;
+              }
+              storeError("");
+              storeLinked = true;
+              setLinkUI();
+              applyStoreState(res.json);
+              $("linkStatus").textContent = "مرتبط بسجلّ Muse — آخر تحديث: " + new Date().toLocaleTimeString("ar", { hour: "numeric", minute: "2-digit" });
+              if (opts.onSuccess) opts.onSuccess();
+              if (!opts.silent) toast("تمّ تحديث محادثاتك من سجلّ Muse");
+            })
+            .catch(function () {
+              if (!opts.silent) storeError("تعذّر الاتصال بالخادم — تحقّقي من الإنترنت وحاولي مجدداً.");
+            });
+        }
+        function startStorePolling() {
+          if (storeTimer) clearInterval(storeTimer);
+          storeTimer = setInterval(function () { if (storeLinked) fetchStore({ silent: true }); }, 60000);
+        }
+        $("linkBtn").addEventListener("click", function () {
+          var v = $("linkCode").value.trim();
+          if (!v) { storeError("الصقي رمز الربط أولاً — تجدينه بإرسال /link للبوت في تيليجرام."); return; }
+          linkCode = v;
+          storeError("");
+          fetchStore({ onSuccess: function () {
+            saveLinkCode();
+            startStorePolling();
+            toast("تمّ الربط — محادثاتك من تيليجرام وهنا واحدة");
+          } });
+        });
+        $("refreshState").addEventListener("click", function () { fetchStore({}); });
+        $("unlinkBtn").addEventListener("click", function () {
+          linkCode = "";
+          storeLinked = false;
+          clearLinkCode();
+          if (storeTimer) clearInterval(storeTimer);
+          setLinkUI();
+          storeError("");
+          toast("أُلغي الربط من هذا الجهاز — محادثاتك محفوظة عند Muse كما هي");
+        });
+        setLinkUI();
+        if (tg && tg.CloudStorage && tg.CloudStorage.getItem) {
+          try {
+            tg.CloudStorage.getItem("maria_link_code", function (err, val) {
+              if (!err && val) {
+                linkCode = val;
+                fetchStore({ silent: true, onSuccess: startStorePolling });
+              }
+            });
+          } catch (e) {}
+        }
 
         /* ---------- Agreed quick commands (main view) ---------- */
         function renderQuickCommands() {
@@ -1494,7 +1834,7 @@
         renderCommands();
         renderReminders();
         renderMemory();
-        renderChat();
+        renderConvList();
       })();
     </script>
   </body>
